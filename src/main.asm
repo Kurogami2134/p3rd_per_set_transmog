@@ -202,23 +202,59 @@ main_block:
     sll     at, v1, 1
     addu    t2, t2, at
     addu    a0, t1, t2 ;  a0 = src set
+
+    addiu   sp, sp, -8
+
+    lhu     at, 0x0(a0)
+    sh      at, 0x0(sp)
+    lhu     at, 0x2(a0)
+    sh      at, 0x2(sp)
+    lhu     at, 0x4(a0)
+    sh      at, 0x4(sp)
+
+    ; a3 = v0 < v1
+    slt     a3, v0, v1
+    bne     a3, zero, @@shift_forward
+    sub     t0, v1, v0
+; shift back
+    sub     t0, v0, v1
+    addiu   t0, t0, -1
+@@b_shift_loop:
+    lhu     at, 0x6(a0)
+    sh      at, 0x0(a0)
+    lhu     at, 0x8(a0)
+    sh      at, 0x2(a0)
+    lhu     at, 0xA(a0)
+    sh      at, 0x4(a0)
+    addiu   t0, t0, -1
+    bne     t0, zero, @@b_shift_loop
+    addiu   a0, a0, 6
+
+    b       @@shifted
+    nop
+@@shift_forward:
+@@f_shift_loop:
+    lhu     at, -0x6(a0)
+    sh      at, 0x0(a0)
+    lhu     at, -0x4(a0)
+    sh      at, 0x2(a0)
+    lhu     at, -0x2(a0)
+    sh      at, 0x4(a0)
+    addiu   t0, t0, -1
+    bne     t0, zero, @@f_shift_loop
+    addiu   a0, a0, -6
     
-    sll     t2, v0, 2
-    sll     at, v0, 1
-    addu    t2, t2, at
-    addu    t1, t1, t2 ;  t1 = dest set
+@@shifted:
 
-    li      t2, 6
-@@move_loop:
-    lbu     at, 0x0(a0)
-    lbu     a1, 0x0(t1)
-    sb      at, 0x0(t1)
-    sb      a1, 0x0(a0)
-
-    addiu   a0, a0, 1
-    addiu   t2, t2, -1
-    bne     t2, 0, @@move_loop
-    addiu   t1, t1, 1
+    ; paste from sp
+    lhu     at, 0x0(sp)
+    sh      at, 0x0(a0)
+    lhu     at, 0x2(sp)
+    sh      at, 0x2(a0)
+    lhu     at, 0x4(sp)
+    sh      at, 0x4(a0)
+    
+    addiu   sp, sp, 8
 
     bal     write_sets
     nop
